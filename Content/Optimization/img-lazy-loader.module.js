@@ -18,94 +18,70 @@
 
    ------------------------------------------------------------------------------
 */
-var ImageLoader = /*#__PURE__*/ (function () {
-  function ImageLoader(img) {
-    this.img = img;
-    this.wrapImage();
-    this.container = this.img.closest(".image-container");
-    this.progressBar = this.container.querySelector(".loading-progress");
-    this.statusElement = this.container.querySelector(".visually-hidden");
-    this.setupListeners();
-  }
-  var _proto = ImageLoader.prototype;
-  _proto.wrapImage = function wrapImage() {
-    var container = document.createElement("div");
-    container.className = "image-container";
-    var progressBar = document.createElement("div");
-    progressBar.className = "loading-progress";
-    var statusElement = document.createElement("span");
-    statusElement.className = "visually-hidden";
-    statusElement.setAttribute("aria-live", "polite");
-    statusElement.textContent = "Image loading";
-    this.img.parentNode.insertBefore(container, this.img);
-    container.appendChild(this.img);
-    container.appendChild(progressBar);
-    container.appendChild(statusElement);
+function handleImageLoad(container, img) {
+  setTimeout(function () {
+    container.setAttribute("image", "async-loaded");
+    img.classList.add("loaded");
+  }, 500);
+}
 
-    // Store original src and set data-src
-    this.img.setAttribute("data-src", this.img.src);
-    this.img.removeAttribute("src");
-  };
-  _proto.setupListeners = function setupListeners() {
-    var _this = this;
-    this.img.addEventListener("load", function () {
-      return _this.handleImageLoad();
+document.addEventListener("DOMContentLoaded", () => 
+{
+  document.querySelectorAll("img").forEach(function (img) 
+  {
+    console.log("[IMAGE Wrapper] Wrapping Image:" + img.src);
+    var container = document.createElement("div");
+    container.className = "image-container rounded-lg object-cover hover-scale";
+    img.parentNode.insertBefore(container, img);
+    container.appendChild(img);
+    img.addEventListener("load", function () {
+      return handleImageLoad(container, img);
     });
-    this.img.addEventListener("error", function () {
-      return _this.handleImageError();
-    });
-    if ("IntersectionObserver" in window) {
-      var observer = new IntersectionObserver(
-        function (entries) {
-          entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-              _this.loadImage();
-              observer.unobserve(_this.container);
-            }
+    if (img.complete) handleImageLoad(container, img);
+  });
+
+  setupListeners();
+});
+
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach((node) => {
+              if (node.nodeName === 'IMG') {
+                console.log("[IMAGE Wrapper] Wrapping Image:" + img.src);
+                var container = document.createElement("div");
+                container.className = "image-container rounded-lg object-cover hover-scale";
+                img.parentNode.insertBefore(container, img);
+                container.appendChild(img);
+                img.addEventListener("load", function () {
+                  return handleImageLoad(container, img);
+                });
+                if (img.complete) handleImageLoad(container, img);
+              } else if (node.nodeType === Node.ELEMENT_NODE) {
+                  node.querySelectorAll('img:not(.loaded)').forEach(img => {
+                      new ImageLoader(img);
+                  });
+              }
           });
-        },
-        {
-          rootMargin: "100px"
-        }
-      );
-      observer.observe(this.container);
-    } else {
-      this.loadImage();
-    }
-  };
-  _proto.loadImage = function loadImage() {
-    var _this2 = this;
-    var src = this.img.getAttribute("data-src");
-    if (src) {
-      this.simulateSlowNetwork(function () {
-        _this2.img.src = src;
-      });
-    }
-  };
-  _proto.simulateSlowNetwork = function simulateSlowNetwork(callback) {
-    var _this3 = this;
-    var progress = 0;
-    var interval = setInterval(function () {
-      progress += Math.random() * 10;
-      if (progress >= 100) {
-        clearInterval(interval);
-        callback();
       }
-      _this3.updateProgress(Math.min(progress, 100));
-    }, 200);
-  };
-  _proto.updateProgress = function updateProgress(progress) {
-    this.progressBar.style.width = progress + "%";
-    this.statusElement.textContent =
-      "Image loading: " + Math.round(progress) + "%";
-  };
-  _proto.handleImageLoad = function handleImageLoad() {
-    this.container.classList.add("loaded");
-    this.statusElement.textContent = "Image loaded successfully";
-  };
-  _proto.handleImageError = function handleImageError() {
-    this.container.classList.add("error");
-    this.statusElement.textContent = "Image failed to load";
-  };
-  return ImageLoader;
-})();
+  });
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
+
+function setupListeners() {
+  
+  if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                  this.loadImage();
+                  observer.unobserve(this.container);
+              }
+          });
+      }, { rootMargin: '100px' });
+      observer.observe(this.container);
+  } else {
+      this.loadImage();
+  }
+} 
